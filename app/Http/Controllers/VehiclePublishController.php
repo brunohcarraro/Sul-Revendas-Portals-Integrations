@@ -12,6 +12,10 @@ class VehiclePublishController extends Controller
 {
     public function publish(Request $request)
     {
+        if ($request->bearerToken() !== config('services.integration.token')) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+        
         $data = $request->validate([
             'portal' => 'required|in:olx,mercadolivre,icarros',
             'vehicle' => 'required|array',
