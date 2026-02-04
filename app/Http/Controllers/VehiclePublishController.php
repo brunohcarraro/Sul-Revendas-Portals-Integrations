@@ -15,6 +15,21 @@ use Http;
 
 class VehiclePublishController extends Controller
 {
+    protected function mapApiVehicleToInternal(array $v): array
+    {
+        return [
+            'veiculo_id' => $v['id'],
+            'veiculo_valor' => $v['price'] ?? 0,
+            'veiculo_ano_modelo' => $v['year'] ?? date('Y'),
+            'fipe_marca_nome' => $v['brand'] ?? '',
+            'fipe_modelo_nome' => $v['model'] ?? '',
+            'veiculo_obs' => $v['title'] ?? '',
+            'veiculo_km' => 0,
+            'veiculo_portas' => 4,
+            'imagens' => [],
+        ];
+    }
+
     public function publish(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -24,7 +39,7 @@ class VehiclePublishController extends Controller
             'vehicle.title' => 'required|string',
         ]);
 
-        $vehicle = $data['vehicle'];
+        $vehicle = $this->mapApiVehicleToInternal($data['vehicle']);
 
         $adapter = match ($data['portal']) {
             'olx'          => new OlxAdapter(),
