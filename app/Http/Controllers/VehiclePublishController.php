@@ -26,9 +26,11 @@ class VehiclePublishController extends Controller
             'price' => 45000,
         ];
 
-        $response = Http::withToken($token)
-            ->acceptJson()
-            ->post('https://integrations.sulrevendas.com.br/api/vehicles/publish', $payload);
+        $response = Http::withToken(config('services.integration.token'))
+        ->withHeaders([
+            'Host' => 'integrations.sulrevendas.com.br',
+        ])
+        ->post('http://127.0.0.1/api/vehicles/publish', $payload);
 
         dd([
             'status' => $response->status(),
