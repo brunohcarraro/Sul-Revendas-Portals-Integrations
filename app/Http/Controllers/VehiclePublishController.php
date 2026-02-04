@@ -20,10 +20,14 @@ class VehiclePublishController extends Controller
         $token = config('services.integration.token');
 
         $payload = [
+            'portal' => 'OLX',
+            'id'  => 1257,
+            'title' => 'Volkswagen Fusca',
             'brand' => 'Volkswagen',
             'model' => 'Fusca',
             'year'  => 1974,
             'price' => 45000,
+            'images' => [],
         ];
 
         $response = Http::withToken(config('services.integration.token'))
