@@ -9,6 +9,7 @@ use App\Services\Portals\ICarros\ICarrosAdapter;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use InvalidArgumentException;
+use Http;
 
 
 
@@ -17,7 +18,7 @@ class VehiclePublishController extends Controller
     public function publish(Request $request): JsonResponse
     {
         $token = config('services.integration.token');
-        
+
         $payload = [
             'brand' => 'Volkswagen',
             'model' => 'Fusca',
