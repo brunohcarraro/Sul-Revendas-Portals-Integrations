@@ -15,7 +15,21 @@ class VehiclePublishController extends Controller
         if ($request->bearerToken() !== config('services.integration.token')) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
-        
+
+        $data = $request->validate([
+            'portal' => 'required|string',
+            'vehicle' => 'required|array',
+            'vehicle.title' => 'required|string',
+        ]);
+
+        $vehicle = $data['vehicle'];
+
+        // só para teste
+        return response()->json([
+            'status' => 'ok',
+            'vehicle' => $vehicle,
+        ]);
+
         dd($request->all());
 
         $data = $request->validate([
