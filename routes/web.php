@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\OAuthCallbackController;
 use App\Http\Controllers\WebhookController;
+use App\Http\Controllers\VehiclePublishController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -41,3 +42,5 @@ Route::prefix('webhooks')->name('webhooks.')->group(function () {
     Route::post('/icarros/lead', [WebhookController::class, 'icarrosLead'])
         ->name('icarros.lead');
 });
+
+Route::post('/vehicles/publish', [VehiclePublishController::class, 'publish']);
