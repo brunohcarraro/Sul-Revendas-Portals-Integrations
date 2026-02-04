@@ -17,29 +17,27 @@ class VehiclePublishController extends Controller
 {
     public function publish(Request $request): JsonResponse
     {
-        $token = config('services.integration.token');
+        $data = $request->validate([
+            'portal' => 'required|in:olx,mercadolivre,icarros',
+            'vehicle' => 'required|array',
+            'vehicle.id'    => 'required',
+            'vehicle.title' => 'required|string',
+        ]);
 
-        $payload = [
-            'portal' => 'OLX',
-            'id'  => 1257,
-            'title' => 'Volkswagen Fusca',
-            'brand' => 'Volkswagen',
-            'model' => 'Fusca',
-            'year'  => 1974,
-            'price' => 45000,
-            'images' => [],
-        ];
+        $vehicle = $data['vehicle'];
 
-        $response = Http::withToken(config('services.integration.token'))
-        ->withHeaders([
-            'Host' => 'integrations.sulrevendas.com.br',
-        ])
-        ->post('http://127.0.0.1/api/vehicles/publish', $payload);
+        $adapter = match ($data['portal']) {
+            'olx'          => new OlxAdapter(),
+            'mercadolivre' => new MercadoLivreAdapter(),
+            'icarros'      => new ICarrosAdapter(),
+        };
 
-        dd([
-            'status' => $response->status(),
-            'body'   => $response->body(),
-            'json'   => $response->json(),
+        $result = $adapter->publishVehicle($vehicle);
+
+        return response()->json([
+            'success' => true,
+            'portal'  => $data['portal'],
+            'result'  => $result,
         ]);
 
         /**
