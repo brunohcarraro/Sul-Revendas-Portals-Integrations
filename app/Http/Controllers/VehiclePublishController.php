@@ -16,6 +16,25 @@ class VehiclePublishController extends Controller
 {
     public function publish(Request $request): JsonResponse
     {
+        $token = config('services.integration.token');
+        
+        $payload = [
+            'brand' => 'Volkswagen',
+            'model' => 'Fusca',
+            'year'  => 1974,
+            'price' => 45000,
+        ];
+
+        $response = Http::withToken($token)
+            ->acceptJson()
+            ->post('https://integrations.sulrevendas.com.br/api/vehicles/publish', $payload);
+
+        dd([
+            'status' => $response->status(),
+            'body'   => $response->body(),
+            'json'   => $response->json(),
+        ]);
+
         /**
          * 1️⃣ Validação da requisição
          */
