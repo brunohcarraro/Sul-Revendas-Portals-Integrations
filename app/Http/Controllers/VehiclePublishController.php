@@ -7,44 +7,68 @@ use App\Services\Portals\OLX\OlxAdapter;
 use App\Services\Portals\MercadoLivre\MercadoLivreAdapter;
 use App\Services\Portals\ICarros\ICarrosAdapter;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use InvalidArgumentException;
+
+
 
 class VehiclePublishController extends Controller
 {
-    public function publish(Request $request)
+    public function publish(Request $request): JsonResponse
     {
-        if ($request->bearerToken() !== config('services.integration.token')) {
-            return response()->json(['error' => 'Unauthorized'], 401);
-        }
-
+        /**
+         * 1️⃣ Validação da requisição
+         */
         $data = $request->validate([
-            'portal' => 'required|string',
+            'portal' => 'required|in:olx,mercadolivre,icarros',
             'vehicle' => 'required|array',
+
+            // campos mínimos do veículo (para teste)
+            'vehicle.id'    => 'required',
             'vehicle.title' => 'required|string',
+            'vehicle.price' => 'nullable|numeric',
+            'vehicle.year'  => 'nullable|integer',
+            'vehicle.brand' => 'nullable|string',
+            'vehicle.model' => 'nullable|string',
+            'vehicle.images'=> 'nullable|array',
         ]);
 
         $vehicle = $data['vehicle'];
 
-        // só para teste
-        return response()->json([
-            'status' => 'ok',
-            'vehicle' => $vehicle,
-        ]);
+        /**
+         * 2️⃣ Seleciona o adapter
+         */
+        try {
+            $adapter = match ($data['portal']) {
+                'olx'          => new OlxAdapter(),
+                'mercadolivre' => new MercadoLivreAdapter(),
+                'icarros'      => new ICarrosAdapter(),
+            };
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Portal adapter not found',
+            ], 422);
+        }
 
-        dd($request->all());
+        /**
+         * 3️⃣ Publicação (aqui pode ser mock no início)
+         */
+        try {
+            $result = $adapter->publishVehicle($vehicle);
 
-        $data = $request->validate([
-            'portal' => 'required|in:olx,mercadolivre,icarros',
-            'vehicle' => 'required|array',
-        ]);
-
-        $adapter = match ($data['portal']) {
-            'olx' => new OlxAdapter(),
-            'mercadolivre' => new MercadoLivreAdapter(),
-            'icarros' => new ICarrosAdapter(),
-        };
-
-        $result = $adapter->publishVehicle($data['vehicle']);
-
-        return response()->json($result);
+            return response()->json([
+                'success' => true,
+                'portal'  => $data['portal'],
+                'result'  => $result,
+            ]);
+        } catch (\Throwable $e) {
+            // erro controlado (não 500 genérico)
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to publish vehicle',
+                'error'   => $e->getMessage(),
+            ], 422);
+        }
     }
 }
