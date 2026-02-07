@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace App\Http\Controllers;
 
@@ -8,10 +8,6 @@ use App\Services\Portals\MercadoLivre\MercadoLivreAdapter;
 use App\Services\Portals\ICarros\ICarrosAdapter;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use InvalidArgumentException;
-use Http;
-
-
 
 class VehiclePublishController extends Controller
 {
@@ -24,9 +20,9 @@ class VehiclePublishController extends Controller
             'fipe_marca_nome' => $v['brand'] ?? '',
             'fipe_modelo_nome' => $v['model'] ?? '',
             'veiculo_obs' => $v['title'] ?? '',
-            'veiculo_km' => 0,
-            'veiculo_portas' => 4,
-            'imagens' => [],
+            'veiculo_km' => $v['km'] ?? 0,
+            'veiculo_portas' => $v['doors'] ?? 4,
+            'imagens' => $v['images'] ?? [],
         ];
     }
 
@@ -37,6 +33,11 @@ class VehiclePublishController extends Controller
             'vehicle' => 'required|array',
             'vehicle.id'    => 'required',
             'vehicle.title' => 'required|string',
+            'vehicle.price' => 'nullable|numeric',
+            'vehicle.year'  => 'nullable|integer',
+            'vehicle.brand' => 'nullable|string',
+            'vehicle.model' => 'nullable|string',
+            'vehicle.images'=> 'nullable|array',
         ]);
 
         $vehicle = $this->mapApiVehicleToInternal($data['vehicle']);
@@ -47,67 +48,29 @@ class VehiclePublishController extends Controller
             'icarros'      => new ICarrosAdapter(),
         };
 
-        $result = $adapter->publishVehicle($vehicle);
-
-        return response()->json([
-            'success' => true,
-            'portal'  => $data['portal'],
-            'result'  => $result,
-        ]);
-
-        /**
-         * 1️⃣ Validação da requisição
-         */
-        $data = $request->validate([
-            'portal' => 'required|in:olx,mercadolivre,icarros',
-            'vehicle' => 'required|array',
-
-            // campos mínimos do veículo (para teste)
-            'vehicle.id'    => 'required',
-            'vehicle.title' => 'required|string',
-            'vehicle.price' => 'nullable|numeric',
-            'vehicle.year'  => 'nullable|integer',
-            'vehicle.brand' => 'nullable|string',
-            'vehicle.model' => 'nullable|string',
-            'vehicle.images'=> 'nullable|array',
-        ]);
-
-        $vehicle = $data['vehicle'];
-
-        /**
-         * 2️⃣ Seleciona o adapter
-         */
-        try {
-            $adapter = match ($data['portal']) {
-                'olx'          => new OlxAdapter(),
-                'mercadolivre' => new MercadoLivreAdapter(),
-                'icarros'      => new ICarrosAdapter(),
-            };
-        } catch (\Throwable $e) {
+        // CRITICAL: Load token from config before using adapter
+        if (!$adapter->authenticate()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Portal adapter not found',
-            ], 422);
+                'portal'  => $data['portal'],
+                'error'   => 'Failed to authenticate with portal. Check .env tokens.',
+            ], 401);
         }
 
-        /**
-         * 3️⃣ Publicação (aqui pode ser mock no início)
-         */
         try {
             $result = $adapter->publishVehicle($vehicle);
 
             return response()->json([
-                'success' => true,
+                'success' => $result['success'] ?? true,
                 'portal'  => $data['portal'],
                 'result'  => $result,
             ]);
         } catch (\Throwable $e) {
-            // erro controlado (não 500 genérico)
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to publish vehicle',
+                'portal'  => $data['portal'],
                 'error'   => $e->getMessage(),
-            ], 422);
+            ], 500);
         }
     }
 }
