@@ -506,6 +506,7 @@ class OlxAdapter implements PortalAdapterInterface
 
     public function transformVehicleData(array $vehicle): array
     {
+        dd($vehicle);
         $id = $vehicle['olx_ad_id'] ?? ('v' . $vehicle['veiculo_id']);
 
         $category = $this->config['categories']['cars'];
