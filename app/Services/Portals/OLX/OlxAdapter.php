@@ -14,6 +14,7 @@ class OlxAdapter implements PortalAdapterInterface
 
     public function __construct()
     {
+        dd(config('portals.olx'));
         $this->config = config('portals.olx');
     }
 
