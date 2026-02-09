@@ -117,46 +117,12 @@ class PortalApiController extends Controller
      */
     public function publishVehicle(Request $request, string $portal): JsonResponse
     {
-        dd($request);
-        
-        $adapter = $this->getAdapter($portal);
-
-        if (!$adapter) {
-            return response()->json([
-                'success' => false,
-                'error' => "Portal '$portal' not found.",
-            ], 404);
-        }
-
-        $data = $request->validate([
-            'vehicle' => 'required|array'
+        return response()->json([
+            'ok' => true,
+            'data' => $request->all(),
         ]);
 
-        $authError = $this->authenticateAdapter($adapter, $portal);
-        if ($authError) {
-            return $authError;
-        }
-
-        try {
-            echo 'oi';
-            exit;
-            $result = $adapter->publishVehicle($data['vehicle']);
-
-            return response()->json([
-                'success' => $result['success'] ?? false,
-                'portal' => $portal,
-                'external_id' => $result['external_id'] ?? null,
-                'url' => $result['url'] ?? null,
-                'error' => $result['error'] ?? null,
-                'raw_response' => $result,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'portal' => $portal,
-                'error' => $e->getMessage(),
-            ], 500);
-        }
+        
     }
 
     /**
