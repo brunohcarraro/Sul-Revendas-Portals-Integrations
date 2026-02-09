@@ -350,10 +350,11 @@ class OlxAdapter implements PortalAdapterInterface
 
     public function publishVehicle(array $vehicleData): array
     {
+
+        dd("aqui" . $vehicleData);
         $ad = $this->transformVehicleData($vehicleData);
         $ad['operation'] = 'insert';
 
-        dd($ad);
         $result = $this->importAds([$ad]);
 
         return [
