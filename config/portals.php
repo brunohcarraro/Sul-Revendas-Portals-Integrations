@@ -61,6 +61,8 @@ return [
         'access_token' => env('MERCADOLIVRE_ACCESS_TOKEN'),
         'refresh_token' => env('MERCADOLIVRE_REFRESH_TOKEN'),
         'user_id' => env('MERCADOLIVRE_USER_ID'),
+        'token_expires_at' => env('MERCADOLIVRE_TOKEN_EXPIRES_AT'),
+        'token_expires_in' => 21600, // 6 hours
         'urls' => [
             'api' => 'https://api.mercadolibre.com',
             'auth' => 'https://auth.mercadolivre.com.br',
@@ -80,6 +82,7 @@ return [
         'access_token' => env('ICARROS_ACCESS_TOKEN'),
         'refresh_token' => env('ICARROS_REFRESH_TOKEN'),
         'dealer_id' => env('ICARROS_DEALER_ID'),
+        'token_expires_at' => env('ICARROS_TOKEN_EXPIRES_AT'),
         'source_urls' => [
             'https://sulrevendas.com.br/painel/integracao-icarros',
             'https://sulrevendas.com.br/painel/integrações',
