@@ -11,18 +11,14 @@ class OlxAdapter implements PortalAdapterInterface
 {
     protected array $config;
     protected ?string $accessToken = null;
-
-    public function __construct()
+    
+    public function __construct(array $config)
     {
-        dump(config('portals.olx.access_token'));
-
-        $this->config = config('portals.olx');
-
-        if (!is_array($this->config)) {
-            throw new \RuntimeException(
-                'OLX config not found. Did you forget config/portals.php or config:clear?'
-            );
+        if (empty($config['access_token'])) {
+            throw new \RuntimeException('OLX access token missing');
         }
+
+        $this->config = $config;
     }
 
     public function getPortalName(): string
