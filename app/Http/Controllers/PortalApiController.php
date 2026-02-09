@@ -127,8 +127,7 @@ class PortalApiController extends Controller
         }
 
         $data = $request->validate([
-            'vehicle' => 'required|array',
-            'vehicle.veiculo_id' => 'required',
+            'vehicle' => 'required|array'
         ]);
 
         $authError = $this->authenticateAdapter($adapter, $portal);
