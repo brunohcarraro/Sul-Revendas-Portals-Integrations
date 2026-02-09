@@ -137,6 +137,8 @@ class PortalApiController extends Controller
         }
 
         try {
+            echo 'oi';
+            exit;
             $result = $adapter->publishVehicle($data['vehicle']);
 
             return response()->json([
