@@ -117,6 +117,7 @@ class PortalApiController extends Controller
      */
     public function publishVehicle(Request $request, string $portal): JsonResponse
     {
+        dd("Aqui..", $request);
         $adapter = $this->getAdapter($portal);
 
         if (!$adapter) {
