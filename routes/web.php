@@ -9,6 +9,10 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/debug/config', function () {
+    dd(config('portals.olx'));
+});
+
 // OAuth Authorization Routes
 Route::prefix('oauth')->name('oauth.')->group(function () {
     // OLX

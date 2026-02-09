@@ -14,8 +14,13 @@ class OlxAdapter implements PortalAdapterInterface
 
     public function __construct()
     {
-        dd(config('portals.olx'));
         $this->config = config('portals.olx');
+
+        if (!is_array($this->config)) {
+            throw new \RuntimeException(
+                'OLX config not found. Did you forget config/portals.php or config:clear?'
+            );
+        }
     }
 
     public function getPortalName(): string
