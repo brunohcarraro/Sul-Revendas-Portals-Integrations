@@ -14,6 +14,8 @@ class OlxAdapter implements PortalAdapterInterface
 
     public function __construct()
     {
+        dump(config('portals.olx.access_token'));
+
         $this->config = config('portals.olx');
 
         if (!is_array($this->config)) {
