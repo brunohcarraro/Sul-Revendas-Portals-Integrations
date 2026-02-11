@@ -292,52 +292,28 @@ class OlxAdapter implements PortalAdapterInterface
             return ['success' => false, 'error' => 'No access token'];
         }
 
-        $payload = [
-            'ads' => $ads
-        ];
+        $result = $this->apiRequestV1(
+            'POST',
+            '/autoupload/import',
+            [
+                'ads' => $ads
+            ]
+        );
 
-        $startTime = microtime(true);
-
-        try {
-            $response = Http::withToken($this->accessToken)
-                ->acceptJson()
-                ->post($this->getBaseUrl() . '/autoupload/import', $payload);
-
-            $durationMs = (int) ((microtime(true) - $startTime) * 1000);
-            $body = $response->json();
-
-            $this->logRequest(
-                'POST',
-                '/autoupload/import',
-                $response->status(),
-                ['ad_count' => count($ads)],
-                $body,
-                $response->successful(),
-                $durationMs
-            );
-
-            if ($response->successful()) {
-                return [
-                    'success' => true,
-                    'response' => $body,
-                    'error' => null,
-                ];
-            }
-
+        if (!$result['success']) {
             return [
                 'success' => false,
-                'error' => $this->parseImportError($body),
-                'raw' => $body,
-            ];
-
-        } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
+                'error' => $result['error'],
+                'raw' => $result['data'] ?? [],
             ];
         }
-    }
 
+        return [
+            'success' => true,
+            'response' => $result['data'],
+            'error' => null,
+        ];
+    }
 
     protected function parseImportError(?array $response): string
     {
