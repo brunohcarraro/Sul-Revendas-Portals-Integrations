@@ -293,30 +293,33 @@ class OlxAdapter implements PortalAdapterInterface
         }
 
         $payload = [
-            'access_token' => $this->accessToken,
-            'ad_list' => $ads,
+            'ads' => $ads
         ];
 
         $startTime = microtime(true);
 
         try {
-            // OLX requires access_token in BOTH header AND body
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->accessToken,
-                'Content-Type' => 'application/json',
-            ])->put($this->getBaseUrl() . '/autoupload/import', $payload);
+            $response = Http::withToken($this->accessToken)
+                ->acceptJson()
+                ->post($this->getBaseUrl() . '/autoupload/import', $payload);
 
             $durationMs = (int) ((microtime(true) - $startTime) * 1000);
             $body = $response->json();
 
-            $this->logRequest('PUT', '/autoupload/import', $response->status(),
-                ['ad_count' => count($ads)], $body, $response->successful(), $durationMs);
+            $this->logRequest(
+                'POST',
+                '/autoupload/import',
+                $response->status(),
+                ['ad_count' => count($ads)],
+                $body,
+                $response->successful(),
+                $durationMs
+            );
 
-            if ($response->successful() && ($body['statusCode'] ?? -1) === 0) {
+            if ($response->successful()) {
                 return [
                     'success' => true,
-                    'token' => $body['token'] ?? null,
-                    'message' => $body['statusMessage'] ?? 'Ads imported',
+                    'response' => $body,
                     'error' => null,
                 ];
             }
@@ -324,13 +327,17 @@ class OlxAdapter implements PortalAdapterInterface
             return [
                 'success' => false,
                 'error' => $this->parseImportError($body),
-                'errors' => $body['errors'] ?? [],
+                'raw' => $body,
             ];
 
         } catch (\Exception $e) {
-            return ['success' => false, 'error' => $e->getMessage()];
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
         }
     }
+
 
     protected function parseImportError(array $response): string
     {
@@ -507,49 +514,109 @@ class OlxAdapter implements PortalAdapterInterface
         ];
     }
 
-    public function transformVehicleData(array $vehicle): array
+    // public function transformVehicleData(array $vehicle): array
+    // {
+    //     $id = $vehicle['olx_ad_id'] ?? ('v' . $vehicle['veiculo_id']);
+
+    //     $category = $this->config['categories']['cars'];
+    //     if (isset($vehicle['categoria_id'])) {
+    //         $category = match ((int) $vehicle['categoria_id']) {
+    //             3 => $this->config['categories']['motorcycles'],
+    //             2 => $this->config['categories']['trucks'],
+    //             default => $this->config['categories']['cars'],
+    //         };
+    //     }
+
+    //     $title = trim(sprintf('%s %s %s',
+    //         $vehicle['fipe_marca_nome'] ?? $vehicle['kbb_marca_nome'] ?? '',
+    //         $vehicle['fipe_modelo_nome'] ?? $vehicle['kbb_modelo_nome'] ?? '',
+    //         $vehicle['veiculo_ano_modelo'] ?? ''
+    //     ));
+
+    //     $description = $vehicle['veiculo_obs'] ?? $title;
+
+    //     $images = [];
+    //     $imageBaseUrl = config('portals.images.base_url') . config('portals.images.path_prefix');
+    //     if (!empty($vehicle['imagens'])) {
+    //         foreach ($vehicle['imagens'] as $img) {
+    //             $imgName = $img->imagem_nome ?? $img['imagem_nome'] ?? null;
+    //             if ($imgName) {
+    //                 $images[] = $imageBaseUrl . $imgName;
+    //             }
+    //         }
+    //     }
+
+    //     return [
+    //         'id' => $id,
+    //         'category' => $category,
+    //         'subject' => substr($title, 0, 90),
+    //         'body' => substr($description, 0, 6000),
+    //         'phone' => $vehicle['anunciante_telefone'] ?? '',
+    //         'type' => 's',
+    //         'price' => (int) ($vehicle['veiculo_valor'] ?? 0),
+    //         'zipcode' => $vehicle['anunciante_cep'] ?? '',
+    //         'images' => array_slice($images, 0, 20),
+    //         'attributes' => $this->buildAttributes($vehicle),
+    //     ];
+    // }
+
+    protected function buildAttributes(array $vehicle): array
     {
-        $id = $vehicle['olx_ad_id'] ?? ('v' . $vehicle['veiculo_id']);
-
-        $category = $this->config['categories']['cars'];
-        if (isset($vehicle['categoria_id'])) {
-            $category = match ((int) $vehicle['categoria_id']) {
-                3 => $this->config['categories']['motorcycles'],
-                2 => $this->config['categories']['trucks'],
-                default => $this->config['categories']['cars'],
-            };
-        }
-
-        $title = trim(sprintf('%s %s %s',
-            $vehicle['fipe_marca_nome'] ?? $vehicle['kbb_marca_nome'] ?? '',
-            $vehicle['fipe_modelo_nome'] ?? $vehicle['kbb_modelo_nome'] ?? '',
-            $vehicle['veiculo_ano_modelo'] ?? ''
-        ));
-
-        $description = $vehicle['veiculo_obs'] ?? $title;
-
-        $images = [];
-        $imageBaseUrl = config('portals.images.base_url') . config('portals.images.path_prefix');
-        if (!empty($vehicle['imagens'])) {
-            foreach ($vehicle['imagens'] as $img) {
-                $imgName = $img->imagem_nome ?? $img['imagem_nome'] ?? null;
-                if ($imgName) {
-                    $images[] = $imageBaseUrl . $imgName;
-                }
-            }
-        }
-
         return [
-            'id' => $id,
-            'category' => $category,
-            'subject' => substr($title, 0, 90),
-            'body' => substr($description, 0, 6000),
-            'phone' => $vehicle['anunciante_telefone'] ?? '',
-            'type' => 's',
-            'price' => (int) ($vehicle['veiculo_valor'] ?? 0),
-            'zipcode' => $vehicle['anunciante_cep'] ?? '',
-            'images' => array_slice($images, 0, 20),
-            'params' => $this->buildParams($vehicle),
+            [
+                'name' => 'vehicle_brand',
+                'value' => (string) $vehicle['brand_id'] // ID da OLX
+            ],
+            [
+                'name' => 'vehicle_model',
+                'value' => (string) $vehicle['model_id'] // ID da OLX
+            ],
+            [
+                'name' => 'carcolor',
+                'value' => (string) $vehicle['carcolor'] // ID válido da OLX
+            ],
+            [
+                'name' => 'cartype',
+                'value' => (string) $vehicle['cartype'] // normalmente 1 (carro)
+            ],
+            [
+                'name' => 'doors',
+                'value' => (string) $vehicle['doors'] // 2 ou 4
+            ]
+        ];
+    }
+
+
+    protected function buildImages(array $vehicle): array
+    {
+        if (empty($vehicle['images'])) {
+            return [];
+        }
+
+        return array_map(function ($img) {
+            return [
+                'url' => $img['url']
+            ];
+        }, $vehicle['images']);
+    }
+
+
+    protected function transformVehicleData(array $vehicle): array
+    {
+        return [
+            'id' => (string) $vehicle['veiculo_id'],
+            'category' => 2020, // carros
+            'operation' => 'insert',
+
+            'subject' => $vehicle['subject'],
+            'body' => $vehicle['body'],
+            'price' => (int) $vehicle['price'],
+            'zipcode' => preg_replace('/\D/', '', $vehicle['zipcode']),
+            'phone' => preg_replace('/\D/', '', $vehicle['phone']),
+
+            'images' => $this->buildImages($vehicle),
+
+            'attributes' => $this->buildAttributes($vehicle),
         ];
     }
 
