@@ -65,7 +65,7 @@ return [
         'access_token' => env('OLX_ACCESS_TOKEN'),
         'refresh_token' => env('OLX_REFRESH_TOKEN'),
         'urls' => [
-            'api' => 'https://apps.olx.com.br',
+            'api' => 'https://api.olx.com.br',
             'auth' => 'https://auth.olx.com.br',
         ],
         'account' => [
