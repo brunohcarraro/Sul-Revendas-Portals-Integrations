@@ -480,8 +480,11 @@ class OlxAdapter implements PortalAdapterInterface
 
             return [
                 'success' => false,
-                'data' => [],
-                'error' => $body['message'] ?? $body['reason'] ?? 'Request failed',
+                'data' => $body,
+                'error' => $body['message']
+                    ?? $body['error']
+                    ?? $body['reason']
+                    ?? json_encode($body),
             ];
 
         } catch (\Exception $e) {
