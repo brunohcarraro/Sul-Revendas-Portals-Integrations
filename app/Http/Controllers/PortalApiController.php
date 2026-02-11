@@ -17,7 +17,7 @@ class PortalApiController extends Controller
     protected function getAdapter(string $portal): ?PortalAdapterInterface
     {
         return match ($portal) {
-            'olx' => new OlxAdapter(),
+            'olx' => new OlxAdapter(config('services.olx')),
             'mercadolivre' => new MercadoLivreAdapter(),
             'icarros' => new ICarrosAdapter(),
             default => null,
