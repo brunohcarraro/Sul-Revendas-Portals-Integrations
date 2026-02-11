@@ -342,8 +342,7 @@ class OlxAdapter implements PortalAdapterInterface
     protected function parseImportError(?array $response): string
     {
         dd([
-            'status' => $response->status(),
-            'headers' => $response->headers(),
+            'status' => $response,
             'body' => $response->body(),
         ]);
         if (!$response) {
