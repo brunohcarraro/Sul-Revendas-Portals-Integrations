@@ -38,6 +38,12 @@ return [
         'token' => env('INTEGRATION_API_TOKEN'),
     ],
     'olx' => [
-        'access_token' => env('OLX_ACCESS_TOKEN'),
+        'access_token' => env('OLX_ACCESS_TOKEN'),,
+
+        'categories' => [
+            'cars' => 2020,
+            'motorcycles' => 2060,
+            'trucks' => 2040,
+        ],
     ],
 ];
