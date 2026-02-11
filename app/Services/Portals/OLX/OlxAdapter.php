@@ -339,8 +339,16 @@ class OlxAdapter implements PortalAdapterInterface
     }
 
 
-    protected function parseImportError(array $response): string
+    protected function parseImportError(?array $response): string
     {
+        dd([
+            'status' => $response->status(),
+            'headers' => $response->headers(),
+            'body' => $response->body(),
+        ]);
+        if (!$response) {
+            return 'Empty response from OLX';
+        }
         $code = $response['statusCode'] ?? -1;
         return match ($code) {
             -1 => 'Unexpected error',
