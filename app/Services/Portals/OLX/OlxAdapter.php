@@ -471,6 +471,8 @@ class OlxAdapter implements PortalAdapterInterface
             $logData = $data;
             unset($logData['access_token']);
 
+            dd($this->getBaseUrl() . '/autoupload/import');
+            
             $this->logRequest($method, $endpoint, $response->status(), $logData, $body, $response->successful(), $durationMs);
 
             if (!$response->successful()) {
