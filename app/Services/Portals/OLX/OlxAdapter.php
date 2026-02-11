@@ -601,7 +601,7 @@ class OlxAdapter implements PortalAdapterInterface
     }
 
 
-    protected function transformVehicleData(array $vehicle): array
+    public function transformVehicleData(array $vehicle): array
     {
         return [
             'id' => (string) $vehicle['veiculo_id'],
