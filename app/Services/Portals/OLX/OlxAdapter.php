@@ -303,15 +303,18 @@ class OlxAdapter implements PortalAdapterInterface
         if (!$result['success']) {
             return [
                 'success' => false,
-                'error' => $result['error'],
-                'raw' => $result['data'] ?? [],
+                'external_id' => null,
+                'url' => null,
+                'error' => $result['error'] ?: json_encode($result['data']),
+                'raw' => $result['data'],
             ];
         }
+
 
         return [
             'success' => true,
             'response' => $result['data'],
-            'error' => null,
+            'error' => !empty($result['error']) ? $result['error'] : null,
         ];
     }
 
@@ -469,6 +472,14 @@ class OlxAdapter implements PortalAdapterInterface
             unset($logData['access_token']);
 
             $this->logRequest($method, $endpoint, $response->status(), $logData, $body, $response->successful(), $durationMs);
+
+            if (!$response->successful()) {
+                dd([
+                    'status' => $response->status(),
+                    'body_raw' => $response->body(),
+                    'body_json' => $body,
+                ]);
+            }
 
             if ($response->successful()) {
                 return [
