@@ -11,7 +11,7 @@ class OlxAdapter implements PortalAdapterInterface
 {
     protected array $config;
     protected ?string $accessToken = null;
-    
+
     public function __construct(array $config)
     {
         if (empty($config['access_token'])) {
@@ -38,7 +38,6 @@ class OlxAdapter implements PortalAdapterInterface
 
     public function setCredentials($credentials): self
     {
-        // For compatibility - credentials come from config
         return $this;
     }
 
@@ -50,7 +49,6 @@ class OlxAdapter implements PortalAdapterInterface
 
     public function authenticate(): bool
     {
-        // Check if we have a token in config or set manually
         $this->accessToken = $this->accessToken ?? $this->config['access_token'] ?? null;
         return $this->accessToken !== null;
     }
@@ -60,39 +58,37 @@ class OlxAdapter implements PortalAdapterInterface
         return $this->accessToken !== null;
     }
 
-    /**
-     * Get OAuth authorization URL for user consent
-     */
+    // ========================================
+    // OAuth
+    // ========================================
+
     public function getAuthorizationUrl(string $state = ''): string
     {
         $params = http_build_query([
             'response_type' => 'code',
-            'client_id' => $this->config['client_id'],
-            'redirect_uri' => $this->config['redirect_uri'],
-            'scope' => 'autoupload basic_user_info',
-            'state' => $state ?: bin2hex(random_bytes(16)),
+            'client_id'     => $this->config['client_id'],
+            'redirect_uri'  => $this->config['redirect_uri'],
+            'scope'         => 'autoupload basic_user_info',
+            'state'         => $state ?: bin2hex(random_bytes(16)),
         ]);
 
         return $this->getAuthUrl() . '/oauth/authorize?' . $params;
     }
 
-    /**
-     * Exchange authorization code for tokens
-     */
     public function exchangeCodeForToken(string $code): array
     {
         try {
             $response = Http::withHeaders([
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept' => 'application/json, text/plain, */*',
+                'User-Agent'      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept'          => 'application/json, text/plain, */*',
                 'Accept-Language' => 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-                'Origin' => 'https://www.olx.com.br',
-                'Referer' => 'https://www.olx.com.br/',
+                'Origin'          => 'https://www.olx.com.br',
+                'Referer'         => 'https://www.olx.com.br/',
             ])->asForm()->post($this->getAuthUrl() . '/oauth/token', [
-                'grant_type' => 'authorization_code',
-                'code' => $code,
-                'redirect_uri' => $this->config['redirect_uri'],
-                'client_id' => $this->config['client_id'],
+                'grant_type'    => 'authorization_code',
+                'code'          => $code,
+                'redirect_uri'  => $this->config['redirect_uri'],
+                'client_id'     => $this->config['client_id'],
                 'client_secret' => $this->config['client_secret'],
             ]);
 
@@ -101,25 +97,25 @@ class OlxAdapter implements PortalAdapterInterface
                 $this->accessToken = $data['access_token'];
 
                 return [
-                    'success' => true,
-                    'access_token' => $data['access_token'],
+                    'success'       => true,
+                    'access_token'  => $data['access_token'],
                     'refresh_token' => $data['refresh_token'] ?? null,
-                    'expires_in' => $data['expires_in'] ?? 3600,
+                    'expires_in'    => $data['expires_in'] ?? 3600,
                 ];
             }
 
-            $body = $response->json();
+            $body     = $response->json();
             $errorMsg = $body['error_description'] ?? $body['error'] ?? 'Token exchange failed';
 
             Log::error('OLX: Token exchange failed', [
-                'status' => $response->status(),
-                'response' => $body,
-                'body_text' => $response->body()
+                'status'    => $response->status(),
+                'response'  => $body,
+                'body_text' => $response->body(),
             ]);
 
             return [
                 'success' => false,
-                'error' => $errorMsg . ' (HTTP ' . $response->status() . ')',
+                'error'   => $errorMsg . ' (HTTP ' . $response->status() . ')',
             ];
 
         } catch (\Exception $e) {
@@ -128,20 +124,17 @@ class OlxAdapter implements PortalAdapterInterface
         }
     }
 
-    /**
-     * Refresh access token
-     */
     public function refreshToken(string $refreshToken): array
     {
         try {
             $response = Http::withHeaders([
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept' => 'application/json, text/plain, */*',
+                'User-Agent'      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept'          => 'application/json, text/plain, */*',
                 'Accept-Language' => 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
             ])->asForm()->post($this->getAuthUrl() . '/oauth/token', [
-                'grant_type' => 'refresh_token',
+                'grant_type'    => 'refresh_token',
                 'refresh_token' => $refreshToken,
-                'client_id' => $this->config['client_id'],
+                'client_id'     => $this->config['client_id'],
                 'client_secret' => $this->config['client_secret'],
             ]);
 
@@ -150,16 +143,16 @@ class OlxAdapter implements PortalAdapterInterface
                 $this->accessToken = $data['access_token'];
 
                 return [
-                    'success' => true,
-                    'access_token' => $data['access_token'],
+                    'success'       => true,
+                    'access_token'  => $data['access_token'],
                     'refresh_token' => $data['refresh_token'] ?? null,
-                    'expires_in' => $data['expires_in'] ?? 3600,
+                    'expires_in'    => $data['expires_in'] ?? 3600,
                 ];
             }
 
             return [
                 'success' => false,
-                'error' => $response->json()['error_description'] ?? 'Token refresh failed',
+                'error'   => $response->json()['error_description'] ?? 'Token refresh failed',
             ];
 
         } catch (\Exception $e) {
@@ -192,7 +185,7 @@ class OlxAdapter implements PortalAdapterInterface
     }
 
     // ========================================
-    // API Request Helper
+    // API Request Helpers
     // ========================================
 
     protected function apiRequest(string $method, string $endpoint, array $data = []): array
@@ -202,46 +195,106 @@ class OlxAdapter implements PortalAdapterInterface
         }
 
         $startTime = microtime(true);
-        $url = $this->getBaseUrl() . $endpoint;
+        $url       = $this->getBaseUrl() . $endpoint;
 
         try {
-            // OLX requires access_token in BOTH header AND body
             $payload = array_merge(['access_token' => $this->accessToken], $data);
 
             $http = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->accessToken,
-                'Content-Type' => 'application/json',
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept' => 'application/json, text/plain, */*',
-                'Accept-Language' => 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-                'Origin' => 'https://www.olx.com.br',
-                'Referer' => 'https://www.olx.com.br/',
+                'Authorization'  => 'Bearer ' . $this->accessToken,
+                'Content-Type'   => 'application/json',
+                'User-Agent'     => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept'         => 'application/json, text/plain, */*',
+                'Accept-Language'=> 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Origin'         => 'https://www.olx.com.br',
+                'Referer'        => 'https://www.olx.com.br/',
             ]);
 
             $response = match (strtoupper($method)) {
                 'POST' => $http->post($url, $payload),
-                'PUT' => $http->put($url, $payload),
-                'GET' => $http->get($url, $payload),
+                'PUT'  => $http->put($url, $payload),
+                'GET'  => $http->get($url, $payload),
                 default => throw new \InvalidArgumentException("Invalid method: {$method}"),
             };
 
             $durationMs = (int) ((microtime(true) - $startTime) * 1000);
-            $body = $response->json();
+            $body       = $response->json();
 
             $this->logRequest($method, $endpoint, $response->status(), $payload, $body, $response->successful(), $durationMs);
 
             if ($response->successful() && ($body['status'] ?? '') === 'ok') {
                 return [
                     'success' => true,
-                    'data' => $body['data'] ?? $body,
-                    'error' => null,
+                    'data'    => $body['data'] ?? $body,
+                    'error'   => null,
                 ];
             }
 
             return [
                 'success' => false,
-                'data' => [],
-                'error' => $body['error'] ?? $body['message'] ?? 'Request failed',
+                'data'    => [],
+                'error'   => $body['error'] ?? $body['message'] ?? 'Request failed',
+            ];
+
+        } catch (\Exception $e) {
+            $durationMs = (int) ((microtime(true) - $startTime) * 1000);
+            $this->logRequest($method, $endpoint, null, $data, null, false, $durationMs, $e->getMessage());
+
+            return ['success' => false, 'data' => [], 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * API request para o endpoint de import (PUT, sem verificação de status 'ok')
+     */
+    protected function apiRequestV1(string $method, string $endpoint, array $data = []): array
+    {
+        if (!$this->accessToken) {
+            return ['success' => false, 'data' => [], 'error' => 'No access token'];
+        }
+
+        $startTime = microtime(true);
+        $url       = 'https://apps.olx.com.br' . $endpoint;
+
+        try {
+            $payload = array_merge(['access_token' => $this->accessToken], $data);
+
+            $http = Http::timeout(60)->withHeaders([
+                'Authorization'   => 'Bearer ' . $this->accessToken,
+                'Content-Type'    => 'application/json',
+                'User-Agent'      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept'          => 'application/json, text/plain, */*',
+                'Accept-Language' => 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Origin'          => 'https://www.olx.com.br',
+                'Referer'         => 'https://www.olx.com.br/',
+            ]);
+
+            $response = match (strtoupper($method)) {
+                'GET'  => $http->get($url, $payload),
+                'POST' => $http->post($url, $payload),
+                'PUT'  => $http->put($url, $payload),
+                default => throw new \InvalidArgumentException("Invalid method: {$method}"),
+            };
+
+            $durationMs = (int) ((microtime(true) - $startTime) * 1000);
+            $body       = $response->json();
+
+            $logData = $data;
+            unset($logData['access_token']);
+            $this->logRequest($method, $endpoint, $response->status(), $logData, $body, $response->successful(), $durationMs);
+
+            if ($response->successful()) {
+                return [
+                    'success' => true,
+                    'data'    => $body,
+                    'error'   => null,
+                ];
+            }
+
+            return [
+                'success' => false,
+                'data'    => $body ?? [],
+                'error'   => $body['message'] ?? $body['error'] ?? $body['reason'] ?? json_encode($body),
             ];
 
         } catch (\Exception $e) {
@@ -262,7 +315,6 @@ class OlxAdapter implements PortalAdapterInterface
         int $durationMs,
         ?string $error = null
     ): void {
-        // Remove token from logged payload
         $logPayload = $payload;
         unset($logPayload['access_token']);
 
@@ -271,19 +323,19 @@ class OlxAdapter implements PortalAdapterInterface
             $method . ' ' . $endpoint,
             $success ? 'success' : 'error',
             [
-                'http_method' => $method,
-                'endpoint' => $endpoint,
-                'http_status' => $status,
+                'http_method'     => $method,
+                'endpoint'        => $endpoint,
+                'http_status'     => $status,
                 'request_payload' => $logPayload,
-                'response_body' => $response,
-                'error_message' => $error,
-                'duration_ms' => $durationMs,
+                'response_body'   => $response,
+                'error_message'   => $error,
+                'duration_ms'     => $durationMs,
             ]
         );
     }
 
     // ========================================
-    // Ad Import (batch operations)
+    // Ad Import
     // ========================================
 
     public function importAds(array $ads): array
@@ -292,49 +344,36 @@ class OlxAdapter implements PortalAdapterInterface
             return ['success' => false, 'error' => 'No access token'];
         }
 
-        $result = $this->apiRequestV1(
-            'POST',
-            '/autoupload/import',
-            [
-                'ads' => $ads
-            ]
-        );
+        // OLX exige PUT para o endpoint de import
+        $result = $this->apiRequestV1('PUT', '/autoupload/import', [
+            'ad_list' => $ads,
+        ]);
 
         if (!$result['success']) {
             return [
-                'success' => false,
+                'success'     => false,
                 'external_id' => null,
-                'url' => null,
-                'error' => $result['error'] ?: json_encode($result['data']),
-                'raw' => $result['data'],
+                'url'         => null,
+                'error'       => $result['error'] ?: json_encode($result['data']),
+                'raw'         => $result['data'],
             ];
         }
 
-
         return [
-            'success' => true,
+            'success'  => true,
             'response' => $result['data'],
-            'error' => !empty($result['error']) ? $result['error'] : null,
+            'error'    => null,
         ];
     }
 
     protected function parseImportError(?array $response): string
     {
-        $body = $response->json();
-
-        dd($body);
-        dd([
-            'status' => $response->status(),
-            'body_raw' => $response->body(),
-            'headers' => $response->headers(),
-        ]);
-
-
-
         if (!$response) {
             return 'Empty response from OLX';
         }
+
         $code = $response['statusCode'] ?? -1;
+
         return match ($code) {
             -1 => 'Unexpected error',
             -2 => 'User blocked for excessive requests',
@@ -354,42 +393,44 @@ class OlxAdapter implements PortalAdapterInterface
 
     public function publishVehicle(array $vehicleData): array
     {
-        $ad = $this->transformVehicleData($vehicleData);
-        $ad['operation'] = 'insert';
+        $vehicle             = $vehicleData[0];
+        $ad                  = $this->transformVehicleData($vehicle);
+        $ad['operation']     = 'insert';
 
         $result = $this->importAds([$ad]);
 
         return [
-            'success' => $result['success'],
+            'success'     => $result['success'],
             'external_id' => $result['success'] ? $ad['id'] : null,
-            'url' => null,
-            'error' => $result['error'] ?? null,
+            'url'         => null,
+            'error'       => $result['error'] ?? null,
         ];
     }
 
     public function updateVehicle(string $externalId, array $vehicleData): array
     {
-        $ad = $this->transformVehicleData($vehicleData);
-        $ad['id'] = $externalId;
+        $vehicle         = $vehicleData[0];
+        $ad              = $this->transformVehicleData($vehicle);
+        $ad['id']        = $externalId;
         $ad['operation'] = 'insert';
 
         $result = $this->importAds([$ad]);
 
         return [
             'success' => $result['success'],
-            'error' => $result['error'] ?? null,
+            'error'   => $result['error'] ?? null,
         ];
     }
 
     public function removeVehicle(string $externalId): array
     {
         $result = $this->importAds([
-            ['id' => $externalId, 'operation' => 'delete']
+            ['id' => $externalId, 'operation' => 'delete'],
         ]);
 
         return [
             'success' => $result['success'],
-            'error' => $result['error'] ?? null,
+            'error'   => $result['error'] ?? null,
         ];
     }
 
@@ -398,6 +439,7 @@ class OlxAdapter implements PortalAdapterInterface
         if (in_array($status, ['sold', 'inactive', 'paused'])) {
             return $this->removeVehicle($externalId);
         }
+
         return ['success' => true, 'error' => null];
     }
 
@@ -408,7 +450,7 @@ class OlxAdapter implements PortalAdapterInterface
         }
 
         $allVehicles = [];
-        $nextToken = null;
+        $nextToken   = null;
 
         do {
             $params = ['access_token' => $this->accessToken];
@@ -423,13 +465,13 @@ class OlxAdapter implements PortalAdapterInterface
             }
 
             $data = $result['data'];
-            $ads = $data['data'] ?? [];
+            $ads  = $data['data'] ?? [];
 
             foreach ($ads as $ad) {
                 $allVehicles[] = [
-                    'id' => $ad['id'] ?? null,
+                    'id'      => $ad['id'] ?? null,
                     'list_id' => $ad['list_id'] ?? null,
-                    'status' => $ad['status'] ?? null,
+                    'status'  => $ad['status'] ?? null,
                 ];
             }
 
@@ -440,158 +482,57 @@ class OlxAdapter implements PortalAdapterInterface
         return ['success' => true, 'vehicles' => $allVehicles, 'error' => null];
     }
 
-    /**
-     * API request for v1 endpoints (different response format)
-     */
-    protected function apiRequestV1(string $method, string $endpoint, array $data = []): array
-    {
-        if (!$this->accessToken) {
-            return ['success' => false, 'data' => [], 'error' => 'No access token'];
-        }
-
-        $startTime = microtime(true);
-        $url = $this->getBaseUrl() . $endpoint;
-
-        try {
-            $http = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->accessToken,
-                'Content-Type' => 'application/json',
-            ]);
-
-            $response = match (strtoupper($method)) {
-                'GET' => $http->get($url, $data),
-                'POST' => $http->post($url, $data),
-                default => throw new \InvalidArgumentException("Invalid method: {$method}"),
-            };
-
-            $durationMs = (int) ((microtime(true) - $startTime) * 1000);
-            $body = $response->json();
-
-            // Remove token from logged data
-            $logData = $data;
-            unset($logData['access_token']);
-
-            dd($this->getBaseUrl() . '/autoupload/import');
-            
-            $this->logRequest($method, $endpoint, $response->status(), $logData, $body, $response->successful(), $durationMs);
-
-            if (!$response->successful()) {
-                dd([
-                    'status' => $response->status(),
-                    'body_raw' => $response->body(),
-                    'body_json' => $body,
-                ]);
-            }
-
-            if ($response->successful()) {
-                return [
-                    'success' => true,
-                    'data' => $body,
-                    'error' => null,
-                ];
-            }
-
-            return [
-                'success' => false,
-                'data' => $body,
-                'error' => $body['message']
-                    ?? $body['error']
-                    ?? $body['reason']
-                    ?? json_encode($body),
-            ];
-
-        } catch (\Exception $e) {
-            $durationMs = (int) ((microtime(true) - $startTime) * 1000);
-            $this->logRequest($method, $endpoint, null, $data, null, false, $durationMs, $e->getMessage());
-
-            return ['success' => false, 'data' => [], 'error' => $e->getMessage()];
-        }
-    }
-
     public function fetchLeads(array $filters = []): array
     {
-        // OLX autoupload API does not provide leads endpoint
-        // Leads are delivered via webhook to configured URL
-        // Configure webhook at: https://developers.olx.com.br
         return [
             'success' => false,
-            'leads' => [],
-            'error' => 'OLX leads are delivered via webhook, not API polling. Configure webhook URL in OLX developer panel.',
+            'leads'   => [],
+            'error'   => 'OLX leads are delivered via webhook, not API polling. Configure webhook URL in OLX developer panel.',
         ];
     }
 
-    // public function transformVehicleData(array $vehicle): array
-    // {
-    //     $id = $vehicle['olx_ad_id'] ?? ('v' . $vehicle['veiculo_id']);
+    // ========================================
+    // Data Transformation
+    // ========================================
 
-    //     $category = $this->config['categories']['cars'];
-    //     if (isset($vehicle['categoria_id'])) {
-    //         $category = match ((int) $vehicle['categoria_id']) {
-    //             3 => $this->config['categories']['motorcycles'],
-    //             2 => $this->config['categories']['trucks'],
-    //             default => $this->config['categories']['cars'],
-    //         };
-    //     }
+    public function transformVehicleData(array $vehicle): array
+    {
+        $zipcode = preg_replace('/\D/', '', $vehicle['zipcode'] ?? '');
+        $phone   = (int) preg_replace('/\D/', '', $vehicle['phone'] ?? '');
 
-    //     $title = trim(sprintf('%s %s %s',
-    //         $vehicle['fipe_marca_nome'] ?? $vehicle['kbb_marca_nome'] ?? '',
-    //         $vehicle['fipe_modelo_nome'] ?? $vehicle['kbb_modelo_nome'] ?? '',
-    //         $vehicle['veiculo_ano_modelo'] ?? ''
-    //     ));
-
-    //     $description = $vehicle['veiculo_obs'] ?? $title;
-
-    //     $images = [];
-    //     $imageBaseUrl = config('portals.images.base_url') . config('portals.images.path_prefix');
-    //     if (!empty($vehicle['imagens'])) {
-    //         foreach ($vehicle['imagens'] as $img) {
-    //             $imgName = $img->imagem_nome ?? $img['imagem_nome'] ?? null;
-    //             if ($imgName) {
-    //                 $images[] = $imageBaseUrl . $imgName;
-    //             }
-    //         }
-    //     }
-
-    //     return [
-    //         'id' => $id,
-    //         'category' => $category,
-    //         'subject' => substr($title, 0, 90),
-    //         'body' => substr($description, 0, 6000),
-    //         'phone' => $vehicle['anunciante_telefone'] ?? '',
-    //         'type' => 's',
-    //         'price' => (int) ($vehicle['veiculo_valor'] ?? 0),
-    //         'zipcode' => $vehicle['anunciante_cep'] ?? '',
-    //         'images' => array_slice($images, 0, 20),
-    //         'attributes' => $this->buildAttributes($vehicle),
-    //     ];
-    // }
+        return [
+            'id'       => (string) ($vehicle['id'] ?? uniqid()),
+            'category' => 2020,
+            'subject'  => (string) ($vehicle['subject'] ?? ''),
+            'body'     => (string) ($vehicle['body'] ?? ''),
+            'price'    => (int) ($vehicle['price'] ?? 0),
+            'zipcode'  => $zipcode,
+            'phone'    => $phone,
+            'type'     => 's',
+            'images'   => $this->buildImages($vehicle),
+            'params'   => $this->buildAttributes($vehicle['params']),
+        ];
+    }
 
     protected function buildAttributes(array $vehicle): array
     {
         return [
-            [
-                'name' => 'vehicle_brand',
-                'value' => (string) $vehicle['brand_id'] // ID da OLX
-            ],
-            [
-                'name' => 'vehicle_model',
-                'value' => (string) $vehicle['model_id'] // ID da OLX
-            ],
-            [
-                'name' => 'carcolor',
-                'value' => (string) $vehicle['carcolor'] // ID válido da OLX
-            ],
-            [
-                'name' => 'cartype',
-                'value' => (string) $vehicle['cartype'] // normalmente 1 (carro)
-            ],
-            [
-                'name' => 'doors',
-                'value' => (string) $vehicle['doors'] // 2 ou 4
-            ]
+            'vehicle_brand'   => (string) $vehicle['vehicle_brand'],
+            'vehicle_model'   => (string) $vehicle['vehicle_model'],
+            'vehicle_version' => (string) ($vehicle['vehicle_version'] ?? '1'),
+            'regdate'         => (string) $vehicle['regdate'],
+            'mileage'         => (int) $vehicle['mileage'],
+            'fuel'            => (string) ($vehicle['fuel'] ?? '3'),
+            'gearbox'         => (string) ($vehicle['gearbox'] ?? '1'),
+            'doors'           => (string) ($vehicle['doors'] ?? '2'),
+            'carcolor'        => (string) ($vehicle['carcolor'] ?? '2'),
+            'cartype'         => (string) ($vehicle['cartype'] ?? '9'),
+            'vehicle_tag'     => strtoupper($vehicle['vehicle_tag'] ?? 'ABC1234'),
+            'motorpower'      => (string) ($vehicle['motorpower'] ?? '10'),
+            'car_steering'    => (string) ($vehicle['car_steering'] ?? '1'),
+            'car_features'    => $vehicle['car_features'] ?? ['1', '3', '4'],
         ];
     }
-
 
     protected function buildImages(array $vehicle): array
     {
@@ -599,42 +540,34 @@ class OlxAdapter implements PortalAdapterInterface
             return [];
         }
 
-        return array_map(function ($img) {
-            return [
-                'url' => $img['url']
-            ];
-        }, $vehicle['images']);
+        return collect($vehicle['images'])
+            ->map(function ($img) {
+                if (is_string($img)) {
+                    return $img;
+                }
+                if (is_array($img) && isset($img['url'])) {
+                    return $img['url'];
+                }
+                return null;
+            })
+            ->filter()
+            ->values()
+            ->toArray();
     }
 
-
-    public function transformVehicleData(array $vehicle): array
-    {
-        return [
-            'id' => (string) $vehicle['veiculo_id'],
-            'category' => 2020, // carros
-            'operation' => 'insert',
-
-            'subject' => $vehicle['subject'],
-            'body' => $vehicle['body'],
-            'price' => (int) $vehicle['price'],
-            'zipcode' => preg_replace('/\D/', '', $vehicle['zipcode']),
-            'phone' => preg_replace('/\D/', '', $vehicle['phone']),
-
-            'images' => $this->buildImages($vehicle),
-
-            'attributes' => $this->buildAttributes($vehicle),
-        ];
-    }
+    // ========================================
+    // Legacy mapping helpers (mantidos para compatibilidade)
+    // ========================================
 
     protected function buildParams(array $vehicle): array
     {
         return [
-            'cartype' => $this->mapCarType($vehicle),
-            'gearbox' => $this->mapGearbox($vehicle),
-            'fuel' => $this->mapFuel($vehicle),
-            'mileage' => $vehicle['veiculo_km'] ?? 0,
-            'regdate' => $vehicle['veiculo_ano_modelo'] ?? date('Y'),
-            'doors' => $this->mapDoors($vehicle),
+            'cartype'  => $this->mapCarType($vehicle),
+            'gearbox'  => $this->mapGearbox($vehicle),
+            'fuel'     => $this->mapFuel($vehicle),
+            'mileage'  => $vehicle['veiculo_km'] ?? 0,
+            'regdate'  => $vehicle['veiculo_ano_modelo'] ?? date('Y'),
+            'doors'    => $this->mapDoors($vehicle),
             'carcolor' => $this->mapColor($vehicle),
         ];
     }
@@ -643,13 +576,13 @@ class OlxAdapter implements PortalAdapterInterface
     {
         $c = strtolower($v['carroceria']['nome'] ?? '');
         return match (true) {
-            str_contains($c, 'sed') => '1',
-            str_contains($c, 'hatch') => '2',
-            str_contains($c, 'perua') || str_contains($c, 'sw') => '3',
-            str_contains($c, 'picape') => '4',
-            str_contains($c, 'suv') => '6',
-            str_contains($c, 'van') => '7',
-            default => '1',
+            str_contains($c, 'sed')                                   => '1',
+            str_contains($c, 'hatch')                                 => '2',
+            str_contains($c, 'perua') || str_contains($c, 'sw')      => '3',
+            str_contains($c, 'picape')                                => '4',
+            str_contains($c, 'suv')                                   => '6',
+            str_contains($c, 'van')                                   => '7',
+            default                                                   => '1',
         };
     }
 
@@ -658,8 +591,8 @@ class OlxAdapter implements PortalAdapterInterface
         $c = strtolower($v['cambio']['nome'] ?? '');
         return match (true) {
             str_contains($c, 'manual') => '1',
-            str_contains($c, 'autom') => '2',
-            default => '1',
+            str_contains($c, 'autom')  => '2',
+            default                    => '1',
         };
     }
 
@@ -671,9 +604,9 @@ class OlxAdapter implements PortalAdapterInterface
             str_contains($c, 'etanol') && !str_contains($c, 'gasolina') => '2',
             str_contains($c, 'flex') || str_contains($c, 'etanol/gasolina') => '3',
             str_contains($c, 'diesel') => '4',
-            str_contains($c, 'gnv') => '5',
-            str_contains($c, 'el') => '6',
-            default => '3',
+            str_contains($c, 'gnv')    => '5',
+            str_contains($c, 'el')     => '6',
+            default                    => '3',
         };
     }
 
@@ -684,11 +617,12 @@ class OlxAdapter implements PortalAdapterInterface
 
     protected function mapColor(array $v): string
     {
-        $c = strtolower($v['cor']['nome'] ?? '');
+        $c      = strtolower($v['cor']['nome'] ?? '');
         $colors = [
-            'preto' => '1', 'branco' => '2', 'prata' => '3', 'cinza' => '4',
-            'vermelho' => '5', 'azul' => '6', 'amarelo' => '7', 'verde' => '8',
-            'laranja' => '9', 'bege' => '10', 'marrom' => '11', 'dourado' => '12',
+            'preto'    => '1',  'branco'   => '2',  'prata'   => '3',
+            'cinza'    => '4',  'vermelho' => '5',  'azul'    => '6',
+            'amarelo'  => '7',  'verde'    => '8',  'laranja' => '9',
+            'bege'     => '10', 'marrom'   => '11', 'dourado' => '12',
         ];
         foreach ($colors as $name => $id) {
             if (str_contains($c, $name)) return $id;

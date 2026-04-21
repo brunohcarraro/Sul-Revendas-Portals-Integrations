@@ -37,11 +37,11 @@ Route::get('/portals', [PortalApiController::class, 'listPortals']);
 // Publish to multiple portals at once
 Route::post('/portals/publish-all', [PortalApiController::class, 'publishToAll']);
 
-// Test connection to a portal
-Route::get('/portals/{portal}/test', [PortalApiController::class, 'testConnection']);
-
 // Vehicles endpoints per portal
 Route::prefix('/portals/{portal}')->group(function () {
+    // Teste
+    Route::get('/test', [PortalApiController::class, 'testConnection']);
+
     // Get published vehicles
     Route::get('/vehicles', [PortalApiController::class, 'getPublishedVehicles']);
 

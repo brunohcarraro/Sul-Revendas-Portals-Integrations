@@ -23,7 +23,7 @@ return new class extends Migration
             $table->text('message')->nullable();
 
             // Extra data from portal
-            $table->json('extra_data')->nullable();
+            $table->text('extra_data')->nullable();
 
             // Status tracking
             $table->enum('status', [

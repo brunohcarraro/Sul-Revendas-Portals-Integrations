@@ -17,7 +17,7 @@ return new class extends Migration
             $table->text('access_token')->nullable();
             $table->text('refresh_token')->nullable();
             $table->timestamp('token_expires_at')->nullable();
-            $table->json('extra_config')->nullable(); // portal-specific settings
+            $table->text('extra_config')->nullable(); // portal-specific settings
             $table->boolean('active')->default(true);
             $table->timestamps();
 

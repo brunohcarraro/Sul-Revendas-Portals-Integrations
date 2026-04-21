@@ -18,8 +18,8 @@ return new class extends Migration
             $table->string('http_method')->nullable();
             $table->string('endpoint')->nullable();
             $table->integer('http_status')->nullable();
-            $table->json('request_payload')->nullable();
-            $table->json('response_body')->nullable();
+            $table->text('request_payload')->nullable();
+            $table->text('response_body')->nullable();
             $table->text('error_message')->nullable();
             $table->integer('duration_ms')->nullable(); // request duration
             $table->timestamp('created_at')->useCurrent();

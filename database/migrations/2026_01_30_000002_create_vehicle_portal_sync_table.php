@@ -32,8 +32,8 @@ return new class extends Migration
                 'activate'
             ])->nullable();
             $table->text('last_error')->nullable();
-            $table->json('last_payload')->nullable(); // last sent payload for debugging
-            $table->json('last_response')->nullable(); // last portal response
+            $table->text('last_payload')->nullable(); // last sent payload for debugging
+            $table->text('last_response')->nullable(); // last portal response
             $table->string('content_hash')->nullable(); // hash to detect changes
             $table->timestamp('last_sync_at')->nullable();
             $table->timestamp('published_at')->nullable();
